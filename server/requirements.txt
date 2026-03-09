@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+supabase
+pydantic
+python-dotenv
+requests
+google-generativeai
+facebook-business
+google-ads
+boto3
+fal-client

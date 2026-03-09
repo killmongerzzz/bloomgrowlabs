@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BloomGrow.ai — 15s Reel Preview</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Inter', sans-serif;
+      color: white;
+    }
+
+    /* ── Phone shell ── */
+    .phone-shell {
+      width: 390px;
+      height: 844px;
+      border-radius: 50px;
+      border: 8px solid #2a2a2a;
+      box-shadow:
+        0 0 0 2px #111,
+        0 40px 80px rgba(0,0,0,0.8),
+        inset 0 0 0 1px #333;
+      overflow: hidden;
+      position: relative;
+      background: #000;
+    }
+
+    /* ── Reel container ── */
+    .reel {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* ── Progress bars (Instagram-style) ── */
+    .progress-bars {
+      position: absolute;
+      top: 16px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      gap: 4px;
+      z-index: 100;
+    }
+    .progress-bar {
+      flex: 1;
+      height: 3px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-bar .fill {
+      height: 100%;
+      width: 0%;
+      background: #fff;
+      border-radius: 2px;
+      transition: none;
+    }
+    .progress-bar.done .fill { width: 100%; }
+    .progress-bar.active .fill {
+      animation: barFill 3s linear forwards;
+    }
+    @keyframes barFill { from { width: 0% } to { width: 100% } }
+
+    /* ── BloomGrow logo badge ── */
+    .logo-badge {
+      position: absolute;
+      top: 36px;
+      left: 20px;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-badge .dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #34d399, #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+    .logo-badge .name {
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    }
+    .logo-badge .tag {
+      font-size: 10px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.7);
+    }
+
+    /* ── Scenes ── */
+    .scene {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 0.7s ease;
+      overflow: hidden;
+    }
+    .scene.active { opacity: 1; }
+    .scene.exiting { opacity: 0; }
+
+    /* ── Background image ── */
+    .scene-bg {
+      position: absolute;
+      inset: -5%;
+      background-size: cover;
+      background-position: center;
+      transform: scale(1);
+      transition: none;
+    }
+    .scene.active .scene-bg {
+      animation: kenBurns 3.5s ease forwards;
+    }
+    @keyframes kenBurns {
+      from { transform: scale(1.0); }
+      to   { transform: scale(1.08); }
+    }
+    @keyframes kenBurnsPan {
+      from { transform: scale(1.05) translateX(0px); }
+      to   { transform: scale(1.08) translateX(-20px); }
+    }
+
+    /* ── Gradient overlays per scene ── */
+    .overlay {
+      position: absolute;
+      inset: 0;
+    }
+    .overlay-dark {
+      background: linear-gradient(
+        to top,
+        rgba(0,0,0,0.95) 0%,
+        rgba(0,0,0,0.55) 50%,
+        rgba(0,0,0,0.25) 100%
+      );
+    }
+    .overlay-red {
+      background: linear-gradient(
+        160deg,
+        rgba(120,20,20,0.7) 0%,
+        rgba(0,0,0,0.85) 60%
+      );
+    }
+    .overlay-teal {
+      background: linear-gradient(
+        160deg,
+        rgba(5,50,50,0.5) 0%,
+        rgba(0,20,40,0.9) 70%
+      );
+    }
+    .overlay-green {
+      background: linear-gradient(
+        to top,
+        rgba(5,30,20,0.92) 0%,
+        rgba(10,60,40,0.6) 50%,
+        rgba(0,0,0,0.2) 100%
+      );
+    }
+    .overlay-warm {
+      background: linear-gradient(
+        160deg,
+        rgba(60,20,0,0.3) 0%,
+        rgba(0,0,0,0.85) 70%
+      );
+    }
+
+    /* ── Scene content ── */
+    .scene-content {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 32px 28px 80px;
+      z-index: 10;
+    }
+    .scene-content.center-layout {
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 80px 32px;
+    }
+
+    /* ── Text animations ── */
+    .text-reveal {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    .scene.active .text-reveal { animation: revealUp 0.6s ease forwards; }
+    .scene.active .text-reveal:nth-child(1) { animation-delay: 0.15s; }
+    .scene.active .text-reveal:nth-child(2) { animation-delay: 0.35s; }
+    .scene.active .text-reveal:nth-child(3) { animation-delay: 0.55s; }
+    .scene.active .text-reveal:nth-child(4) { animation-delay: 0.75s; }
+    .scene.active .text-reveal:nth-child(5) { animation-delay: 0.90s; }
+    @keyframes revealUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      opacity: 0;
+    }
+    .scene.active .fade-in { animation: fadeIn 0.8s ease forwards; }
+    .scene.active .fade-in:nth-child(1) { animation-delay: 0.2s; }
+    .scene.active .fade-in:nth-child(2) { animation-delay: 0.5s; }
+    .scene.active .fade-in:nth-child(3) { animation-delay: 0.9s; }
+    .scene.active .fade-in:nth-child(4) { animation-delay: 1.3s; }
+    @keyframes fadeIn { to { opacity: 1; } }
+
+    /* ── Typography ── */
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 10px;
+    }
+    .eyebrow.danger  { color: #fca5a5; }
+    .eyebrow.success { color: #6ee7b7; }
+    .eyebrow.brand   { color: #93c5fd; }
+
+    .headline-xl {
+      font-size: 40px;
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+    .headline-xl em { font-style: normal; color: #fbbf24; }
+    .headline-xl .accent { color: #6ee7b7; }
+
+    .headline-lg {
+      font-size: 34px;
+      font-weight: 900;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      color: #fff;
+      margin-bottom: 14px;
+    }
+
+    .subtext {
+      font-size: 15px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.75);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+
+    .stat-block {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .stat-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .stat-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: rgba(239,68,68,0.25);
+      border: 1px solid rgba(239,68,68,0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .stat-icon.warn  { background: rgba(251,191,36,0.2); border-color: rgba(251,191,36,0.4); }
+    .stat-icon.info  { background: rgba(96,165,250,0.2); border-color: rgba(96,165,250,0.4); }
+    .stat-text {
+      font-size: 14px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.85);
+    }
+
+    /* ── Scene 3: big brand reveal ── */
+    .brand-reveal {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+    .brand-logo-big {
+      width: 90px;
+      height: 90px;
+      border-radius: 26px;
+      background: linear-gradient(135deg, #10b981, #3b82f6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      box-shadow: 0 0 60px rgba(52,211,153,0.4), 0 20px 40px rgba(0,0,0,0.4);
+    }
+    .brand-name-big {
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #6ee7b7, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-tagline {
+      font-size: 15px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.7);
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
+    /* ── Scene 4: feature pills ── */
+    .feature-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+    .feature-pill {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      padding: 14px 18px;
+    }
+    .pill-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .pill-icon.green { background: rgba(52,211,153,0.2); }
+    .pill-icon.blue  { background: rgba(96,165,250,0.2); }
+    .pill-icon.orange { background: rgba(251,146,60,0.2); }
+    .pill-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 2px;
+    }
+    .pill-desc {
+      font-size: 12px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.55);
+    }
+
+    /* ── Scene 5: CTA ── */
+    .cta-block {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+    }
+    .cta-button {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      text-align: center;
+      padding: 18px;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(16,185,129,0.45);
+    }
+    .cta-url {
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.45);
+      letter-spacing: 0.08em;
+    }
+
+    /* ── Controls ── */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 28px;
+    }
+    .ctrl-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: white;
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .ctrl-btn:hover { background: rgba(255,255,255,0.15); }
+    .ctrl-btn.primary {
+      background: linear-gradient(135deg, #10b981, #3b82f6);
+      border-color: transparent;
+    }
+
+    .scene-counter {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      font-weight: 500;
+    }
+
+    /* ── Muted badge ── */
+    .muted-badge {
+      position: absolute;
+      bottom: 28px;
+      right: 20px;
+      z-index: 100;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(8px);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.5);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Phone Shell -->
+  <div class="phone-shell">
+    <div class="reel" id="reel">
+
+      <!-- ── Progress bars ── -->
+      <div class="progress-bars" id="progressBars">
+        <div class="progress-bar"><div class="fill"></div></div>
+        <div class="progress-bar"><div class="fill"></div></div>
+        <div class="progress-bar"><div class="fill"></div></div>
+        <div class="progress-bar"><div class="fill"></div></div>
+        <div class="progress-bar"><div class="fill"></div></div>
+      </div>
+
+      <!-- ── Logo badge (persistent) ── -->
+      <div class="logo-badge">
+        <div class="dot">🌱</div>
+        <div>
+          <div class="name">bloomgrow.ai</div>
+          <div class="tag">Privacy-first learning</div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           SCENE 1 — Hook: The Problem
+      ═══════════════════════════════════════════════ -->
+      <div class="scene" id="scene-0">
+        <div class="scene-bg" style="background-image: url('https://images.pexels.com/photos/9784238/pexels-photo-9784238.jpeg?auto=compress&cs=tinysrgb&h=900&w=600&fit=crop')"></div>
+        <div class="overlay overlay-red"></div>
+        <div class="scene-content">
+          <span class="eyebrow danger text-reveal">Every parent's worry</span>
+          <h2 class="headline-xl text-reveal">
+            Are ads <em>hijacking</em> your child's screen time?
+          </h2>
+          <p class="subtext text-reveal">
+            The average child sees over <strong style="color:#fbbf24">30 ads/hour</strong> on free apps — most of them unfiltered.
+          </p>
+        </div>
+        <div class="muted-badge">🔇 No audio</div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           SCENE 2 — Problem Amplification
+      ═══════════════════════════════════════════════ -->
+      <div class="scene" id="scene-1">
+        <div class="scene-bg" style="background-image: url('https://images.pexels.com/photos/7269629/pexels-photo-7269629.jpeg?auto=compress&cs=tinysrgb&h=900&w=600&fit=crop')"></div>
+        <div class="overlay overlay-dark"></div>
+        <div class="scene-content">
+          <span class="eyebrow danger text-reveal">What's really happening</span>
+          <div class="stat-block">
+            <div class="stat-row text-reveal">
+              <div class="stat-icon">🎯</div>
+              <span class="stat-text">Targeted ads — even on "kids" apps</span>
+            </div>
+            <div class="stat-row text-reveal">
+              <div class="stat-icon warn">⚠️</div>
+              <span class="stat-text">Zero age-appropriate filtering</span>
+            </div>
+            <div class="stat-row text-reveal">
+              <div class="stat-icon info">🔓</div>
+              <span class="stat-text">No parent control. No transparency.</span>
+            </div>
+          </div>
+          <p class="subtext text-reveal" style="color:rgba(255,255,255,0.5); font-size:13px;">
+            Their curiosity deserves better than an ad engine.
+          </p>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           SCENE 3 — Brand Reveal
+      ═══════════════════════════════════════════════ -->
+      <div class="scene" id="scene-2">
+        <div class="scene-bg" style="background-image: url('https://images.pexels.com/photos/8363738/pexels-photo-8363738.jpeg?auto=compress&cs=tinysrgb&h=900&w=600&fit=crop'); animation-name: kenBurnsPan;"></div>
+        <div class="overlay overlay-teal"></div>
+        <div class="scene-content center-layout">
+          <div class="brand-reveal">
+            <div class="brand-logo-big fade-in">🌱</div>
+            <div class="brand-name-big fade-in">BloomGrow.ai</div>
+            <div class="brand-tagline fade-in">
+              A privacy-first, ad-free, one-stop<br/>digital learning space for children.
+            </div>
+            <div style="width:60px; height:2px; background:linear-gradient(90deg,#10b981,#3b82f6); border-radius:2px;" class="fade-in"></div>
+            <p style="font-size:13px; color:rgba(255,255,255,0.5); font-weight:500;" class="fade-in">
+              Built for parents. Loved by kids.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           SCENE 4 — Features
+      ═══════════════════════════════════════════════ -->
+      <div class="scene" id="scene-3">
+        <div class="scene-bg" style="background-image: url('https://images.pexels.com/photos/8613318/pexels-photo-8613318.jpeg?auto=compress&cs=tinysrgb&h=900&w=600&fit=crop')"></div>
+        <div class="overlay overlay-green"></div>
+        <div class="scene-content">
+          <span class="eyebrow success text-reveal">What BloomGrow gives you</span>
+          <div class="feature-grid">
+            <div class="feature-pill text-reveal">
+              <div class="pill-icon green">🔒</div>
+              <div>
+                <div class="pill-title">Privacy-first by design</div>
+                <div class="pill-desc">No data collection. No profiling. Ever.</div>
+              </div>
+            </div>
+            <div class="feature-pill text-reveal">
+              <div class="pill-icon blue">🚫</div>
+              <div>
+                <div class="pill-title">Zero ads. Zero interruptions.</div>
+                <div class="pill-desc">Safe, uninterrupted learning — always.</div>
+              </div>
+            </div>
+            <div class="feature-pill text-reveal">
+              <div class="pill-icon orange">🧭</div>
+              <div>
+                <div class="pill-title">Guides parents, not just kids</div>
+                <div class="pill-desc">Insights, controls and gentle nudges for you.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════
+           SCENE 5 — CTA
+      ═══════════════════════════════════════════════ -->
+      <div class="scene" id="scene-4">
+        <div class="scene-bg" style="background-image: url('https://images.pexels.com/photos/7269542/pexels-photo-7269542.jpeg?auto=compress&cs=tinysrgb&h=900&w=600&fit=crop')"></div>
+        <div class="overlay overlay-warm"></div>
+        <div class="scene-content">
+          <span class="eyebrow brand text-reveal">Start today — it's free</span>
+          <h2 class="headline-lg text-reveal">
+            Give them a <span class="accent" style="color:#6ee7b7">secure</span> space to grow.
+          </h2>
+          <p class="subtext text-reveal">
+            14-day free trial. No credit card. Cancel anytime.
+          </p>
+          <div class="cta-block text-reveal">
+            <div class="cta-button">
+              Explore BloomGrow Free →
+            </div>
+            <div style="display:flex; gap:8px; justify-content:center;" class="text-reveal">
+              <span style="font-size:12px; color:rgba(255,255,255,0.35); font-weight:500;">50% off first 3 months · Code BLOOM50</span>
+            </div>
+          </div>
+          <div class="cta-url text-reveal">bloomgrow.ai</div>
+        </div>
+      </div>
+
+    </div><!-- /reel -->
+  </div><!-- /phone-shell -->
+
+  <!-- Controls below phone -->
+  <div class="controls">
+    <button class="ctrl-btn" id="btnRestart">↺ Restart</button>
+    <span class="scene-counter" id="sceneCounter">Scene 1 / 5</span>
+    <button class="ctrl-btn" id="btnPause">⏸ Pause</button>
+  </div>
+
+  <p style="color:rgba(255,255,255,0.2); font-size:11px; margin-top:14px; text-align:center;">
+    15-second reel preview · HTML proof-of-concept · BloomGrow.ai
+  </p>
+
+  <script>
+    const SCENE_DURATION = 3000; // ms per scene
+    const TRANSITION    = 700;   // ms crossfade
+
+    const scenes    = Array.from(document.querySelectorAll('.scene'));
+    const bars      = Array.from(document.querySelectorAll('.progress-bar'));
+    const counter   = document.getElementById('sceneCounter');
+    const btnPause  = document.getElementById('btnPause');
+    const btnRestart = document.getElementById('btnRestart');
+
+    let current  = 0;
+    let paused   = false;
+    let timer    = null;
+
+    function goTo(index) {
+      // Clear previous active
+      scenes.forEach((s, i) => {
+        s.classList.remove('active');
+        bars[i].classList.remove('active', 'done');
+        bars[i].querySelector('.fill').style.animation = 'none';
+      });
+
+      // Mark done bars
+      for (let i = 0; i < index; i++) {
+        bars[i].classList.add('done');
+      }
+
+      // Activate current
+      scenes[index].classList.add('active');
+      // Force reflow to restart CSS animation
+      void bars[index].querySelector('.fill').offsetWidth;
+      bars[index].classList.add('active');
+
+      current = index;
+      counter.textContent = `Scene ${index + 1} / ${scenes.length}`;
+    }
+
+    function advance() {
+      if (paused) return;
+      const next = (current + 1) % scenes.length;
+      goTo(next);
+    }
+
+    function startTimer() {
+      clearInterval(timer);
+      timer = setInterval(advance, SCENE_DURATION);
+    }
+
+    // Init
+    goTo(0);
+    startTimer();
+
+    btnPause.addEventListener('click', () => {
+      paused = !paused;
+      btnPause.textContent = paused ? '▶ Resume' : '⏸ Pause';
+      if (!paused) startTimer();
+      else clearInterval(timer);
+    });
+
+    btnRestart.addEventListener('click', () => {
+      paused = false;
+      btnPause.textContent = '⏸ Pause';
+      goTo(0);
+      startTimer();
+    });
+
+    // Tap to advance on phone
+    document.getElementById('reel').addEventListener('click', () => {
+      clearInterval(timer);
+      advance();
+      startTimer();
+    });
+  </script>
+</body>
+</html>
