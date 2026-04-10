@@ -49,6 +49,7 @@ export default function CreativeStudio() {
     const [regenerating, setRegenerating] = useState(false);
     const [seedStyle, setSeedStyle] = useState<any>(null);
     const [promoText, setPromoText] = useState("Start your 14-day free trial. 50% off first 3 months with Code: BLOOM50. 40% off annual plan with Code: BLOOM-LAUNCH");
+    const [isReel, setIsReel] = useState(false);
 
     // Control Panel State
     const [editMode, setEditMode] = useState(false);
@@ -235,27 +236,34 @@ export default function CreativeStudio() {
         }
     };
 
-    const handleExportPNG = async (creative: CreativeVariant, fromModal: boolean = false) => {
+    const handleExportPNG = async (creative: CreativeVariant, fromModal: boolean = false, isReelExport: boolean = false) => {
         setExportingId(creative.id);
+        const originalReelState = isReel;
 
         // If not from modal, we still need to set previewVariant to render it in DOM
-        if (!fromModal) setPreviewVariant(creative);
+        if (!fromModal) {
+            setPreviewVariant(creative);
+            setIsReel(isReelExport);
+        }
 
         setTimeout(async () => {
             if (renderRef.current) {
                 try {
                     const dataUrl = await htmlToImage.toPng(renderRef.current, {
                         cacheBust: true,
-                        pixelRatio: 1,
+                        pixelRatio: isReelExport ? 2 : 1, // Higher res for reels
                         skipFonts: false,
                         includeQueryParams: true
                     });
-                    saveAs(dataUrl, `bloomgrow - ad - ${creative.id.substring(0, 6)}.png`);
+                    saveAs(dataUrl, `bloomgrow - ${isReelExport ? 'reel' : 'post'} - ${creative.id.substring(0, 6)}.png`);
                 } catch (err) {
                     console.error('Failed to export image', err);
                 } finally {
                     setExportingId(null);
-                    if (!fromModal) setPreviewVariant(null);
+                    if (!fromModal) {
+                        setPreviewVariant(null);
+                        setIsReel(originalReelState);
+                    }
                 }
             }
         }, 500);
@@ -269,6 +277,20 @@ export default function CreativeStudio() {
                     <p className="text-gray-500 text-sm mt-1">Scale your marketing with the Code-Based Layout Engine.</p>
                 </div>
                 <div className="flex gap-3">
+                    <div className="bg-gray-100 p-1 rounded-lg flex border border-gray-200">
+                        <button
+                            onClick={() => setIsReel(false)}
+                            className={`px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-2 ${!isReel ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <LayoutTemplate className="w-3.5 h-3.5" /> Post (1:1)
+                        </button>
+                        <button
+                            onClick={() => setIsReel(true)}
+                            className={`px-3 py-1.5 rounded-md text-xs font-bold transition flex items-center gap-2 ${isReel ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        >
+                            <Sparkles className="w-3.5 h-3.5" /> Reel (9:16)
+                        </button>
+                    </div>
                     <button className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-md font-medium hover:bg-gray-50 transition flex items-center gap-2">
                         <Download className="w-4 h-4" /> Download All
                     </button>
@@ -410,12 +432,20 @@ export default function CreativeStudio() {
                                             </div>
                                             <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all shrink-0 ml-4">
                                                 <button
-                                                    onClick={() => handleExportPNG(creative)}
-                                                    title="Download PNG"
+                                                    onClick={() => handleExportPNG(creative, false, false)}
+                                                    title="Download PNG (1:1)"
                                                     className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition shadow-sm bg-white"
                                                     disabled={exportingId === creative.id}
                                                 >
                                                     {exportingId === creative.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleExportPNG(creative, false, true)}
+                                                    title="Download Reel (9:16)"
+                                                    className="p-2 text-gray-400 hover:text-fuchsia-600 hover:bg-fuchsia-50 rounded-full transition shadow-sm bg-white"
+                                                    disabled={exportingId === creative.id}
+                                                >
+                                                    {exportingId === creative.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                                                 </button>
                                                 <button title="Export for Metadata" className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition shadow-sm bg-white"><Send className="w-4 h-4" /></button>
                                             </div>
@@ -669,37 +699,60 @@ export default function CreativeStudio() {
 }
 
 // Helper to render structured promotional block — same glass card style across all templates
-function PromotionBlock({ pointers, template }: { pointers?: string[], template?: string }) {
+const PromotionBlock = ({ pointers, template, isReelMode }: { pointers?: string[], template: string, isReelMode?: boolean }) => {
     if (!pointers || pointers.length === 0) return null;
 
-    // Stacked typography: inline card (no full-width blue banner, no button)
-    // All other templates: centered floating card
     const isStackedType = template === 'stacked_typography';
-
+    
     return (
-        <div className={`bg-black/40 backdrop-blur-xl border border-white/20 rounded-[24px] shadow-2xl space-y-2 text-left ${
+        <div className={`bg-black/45 backdrop-blur-xl border border-white/25 rounded-[32px] shadow-2xl text-left transition-all duration-500 ${
             isStackedType
-                ? 'w-full px-10 py-6 mx-0'
-                : 'mt-4 p-6 w-full max-w-[850px]'
+                ? 'w-full px-10 py-8 mx-0'
+                : `mt-6 p-8 w-full max-w-[900px] border-l-8 border-l-indigo-500 ${isReelMode ? 'px-12 py-10' : ''}`
         }`}>
-            <div className="flex items-center gap-2 mb-1">
-                <div className="w-2 h-2 bg-[#818cf8] rounded-full animate-pulse shadow-[0_0_10px_rgba(129,140,248,1)]" />
-                <span className="text-[#a5b4fc] text-[22px] font-black uppercase tracking-[0.2em]">Exclusive Offer</span>
+            <div className="flex items-center gap-3 mb-3">
+                <div className="w-3 h-3 bg-indigo-400 rounded-full animate-pulse shadow-[0_0_15px_rgba(129,140,248,1)]" />
+                <span className="text-indigo-200 text-[24px] font-black uppercase tracking-[0.25em] leading-none">Limited Offer</span>
             </div>
-            {pointers.map((p, i) => (
-                <div key={i} className="flex items-center gap-4">
-                    <span className="text-white text-[28px] font-black leading-tight tracking-tight drop-shadow-md">
-                        {p}
-                    </span>
-                </div>
-            ))}
+            <div className="space-y-3">
+                {pointers.map((p, i) => (
+                    <div key={i} className="flex items-center gap-4 group">
+                        <div className="w-1.5 h-1.5 bg-white/40 rounded-full shrink-0 group-hover:bg-white transition-colors" />
+                        <span className="text-white text-[32px] font-black leading-tight tracking-tight drop-shadow-xl">
+                            {p}
+                        </span>
+                    </div>
+                ))}
+            </div>
         </div>
     );
-}
+};
+
+// Component for mandatory branding: split side-to-side
+const SplitBranding = ({ isReelMode, light = true, position = 'top' }: { isReelMode?: boolean, light?: boolean, position?: 'top' | 'bottom' }) => {
+    const verticalGap = isReelMode ? (position === 'top' ? 'top-10' : 'bottom-10') : (position === 'top' ? 'top-8' : 'bottom-8');
+    const horizontalGap = isReelMode ? 'px-16' : 'px-10';
+    
+    return (
+        <div className={`absolute left-0 right-0 ${verticalGap} ${horizontalGap} flex justify-between items-center z-50 pointer-events-none`}>
+            <div className={`text-[32px] font-black tracking-tighter ${light ? 'text-white' : 'text-slate-900'} drop-shadow-xl`}>
+                Bloom Grow AI
+            </div>
+            <div className={`text-[13px] font-black uppercase tracking-[0.25em] ${light ? 'text-white/80' : 'text-slate-600'} drop-shadow-md`}>
+                The Best Kids Learning App
+            </div>
+        </div>
+    );
+};
 
 // Layout Component that handles scaling for both UI and Export
-function CreativeLayout({ creative, isExport = false }: { creative: CreativeVariant, isExport?: boolean }) {
-    const scale = isExport ? 1 : 0.4; // Scale down for UI, full size for export (1080x1080)
+function CreativeLayout({ creative, isExport = false, isReelMode = false }: { creative: CreativeVariant, isExport?: boolean, isReelMode?: boolean }) {
+    // 1080x1080 (Post) vs 1080x1920 (Reel)
+    const baseWidth = 1080;
+    const baseHeight = isReelMode ? 1920 : 1080;
+    
+    const uiScale = isReelMode ? 0.28 : 0.45; // Different scaling for vertical reels in UI
+    const scale = isExport ? 1 : uiScale;
 
     // Default fallback image if URL is missing
     const defaultImg = "https://images.unsplash.com/photo-1501854140801-515011ce7d78?auto=format&fit=crop&w=1080&q=80";
@@ -734,8 +787,8 @@ function CreativeLayout({ creative, isExport = false }: { creative: CreativeVari
     const commonStyles = {
         transform: `scale(${scale})`,
         transformOrigin: "top left",
-        width: "1080px",
-        height: "1080px",
+        width: `${baseWidth}px`,
+        height: `${baseHeight}px`,
         position: "absolute" as const,
         top: 0,
         left: 0,
@@ -745,39 +798,34 @@ function CreativeLayout({ creative, isExport = false }: { creative: CreativeVari
     return (
         <div style={commonStyles}>
             {creative.genome.template === 'illustration_card' && (
-                <div className="h-full w-full relative flex flex-col items-center justify-center text-center overflow-hidden bg-gray-900" style={{ padding: '80px 96px 200px 96px', gap: '48px' }}>
-                    {/* Gradient Background overrides any image */}
+                <div className="h-full w-full relative flex flex-col items-center justify-start text-center overflow-hidden bg-gray-900" 
+                    style={{ 
+                        padding: isReelMode ? '160px 80px 240px 80px' : '100px 64px 180px 64px', 
+                        gap: isReelMode ? '64px' : '40px' 
+                    }}>
                     <div className="absolute inset-0 bg-gradient-to-br from-teal-400 via-emerald-500 to-blue-600 z-0"></div>
 
-                    {/* Floating Decorative Shapes (Bigger, big, medium, small, faded) */}
-                    <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-white/5 blur-[80px] z-0"></div>
-                    <div className="absolute bottom-[-5%] right-[-5%] w-[500px] h-[500px] rounded-full bg-white/5 blur-[60px] z-0"></div>
-                    <div className="absolute top-[20%] right-[10%] w-64 h-64 rounded-xl rotate-45 bg-white/10 blur-2xl z-0"></div>
-                    <div className="absolute bottom-20 left-10 w-48 h-48 rounded-full bg-white/10 blur-xl z-0"></div>
-                    <div className="absolute top-1/2 right-[20%] w-32 h-32 rounded-lg -rotate-12 bg-white/10 blur-lg z-0"></div>
-                    <div className="absolute top-[15%] left-[30%] w-24 h-24 rounded-full bg-white/15 blur-md z-0"></div>
-                    <div className="absolute bottom-1/4 left-[15%] w-16 h-16 rounded-full bg-white/20 blur-sm z-0"></div>
-                    <div className="absolute top-1/3 left-1/4 w-12 h-12 rounded-lg rotate-12 bg-white/20 blur-[2px] z-0"></div>
-                    <div className="absolute bottom-10 right-1/3 w-8 h-8 rounded-full bg-white/30 blur-none z-0"></div>
-                    <div className="absolute top-40 right-1/4 w-6 h-6 rounded-full bg-white/40 blur-none z-0"></div>
+                    <SplitBranding isReelMode={isReelMode} />
 
-                    {/* Large Centered Icon (Supports URLs) */}
-                    <div className="w-72 h-72 bg-white/20 rounded-[80px] flex items-center justify-center backdrop-blur-xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] z-10 border-[8px] border-white/40">
+                    {/* Large Centered Icon */}
+                    <div className={`${isReelMode ? 'w-80 h-80 rounded-[80px]' : 'w-64 h-64 rounded-[64px]'} bg-white/20 flex items-center justify-center backdrop-blur-xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] z-10 border-[6px] border-white/40`}>
                         {getIcon(randomIcon || creative.genome.icon, isExport)}
                     </div>
 
-                    <h2 className={`text-[85px] font-black text-white leading-[1.1] tracking-tight z-10 ${creative.genome.font_style === 'rounded' ? 'font-mono' : ''}`}
+                    <h2 className={`${isReelMode ? 'text-[96px]' : 'text-[72px]'} font-black text-white leading-[1.05] tracking-tight z-10 ${creative.genome.font_style === 'rounded' ? 'font-mono' : ''}`}
                         style={{ textShadow: "0 4px 20px rgba(0,0,0,0.15)" }}>
                         {creative.headline}
                     </h2>
 
-                    <p className="text-white/90 font-medium text-[38px] max-w-[850px] leading-snug z-10">
+                    <p className="text-white/90 font-medium text-[38px] max-w-[900px] leading-snug z-10">
                         {creative.supporting_text}
                     </p>
-                    <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} />
+                    <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} isReelMode={isReelMode} />
+                    
                     {/* CTA Safe Zone */}
                     <div className="absolute bottom-0 left-0 right-0 h-[160px] z-20 pointer-events-none"
                         style={{ background: 'linear-gradient(to top, rgba(0,30,50,0.85) 0%, rgba(0,30,50,0.3) 55%, transparent 100%)' }}>
+                        {isReelMode && <div className="absolute bottom-10 left-0 right-0 text-center text-white/20 text-sm font-black uppercase tracking-[0.5em]">Platform CTA Area</div>}
                     </div>
                 </div>
             )}
@@ -787,20 +835,21 @@ function CreativeLayout({ creative, isExport = false }: { creative: CreativeVari
                     <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${bgUrl}')` }}></div>
                     <div className="absolute inset-0 backdrop-blur-[10px]"></div>
                     <div className="absolute inset-0 bg-indigo-900/30"></div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent"></div>
-
-                    <div className="relative flex-1 flex flex-col items-center justify-center p-20 pt-32 text-center text-white z-10" style={{ paddingBottom: '200px' }}>
-                        <h2 className="text-[100px] font-black leading-[1.05] tracking-tight text-balance mb-8 drop-shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+                    <div className="relative flex-1 flex flex-col items-center justify-center p-16 pt-32 text-center text-white z-10" 
+                        style={{ paddingBottom: isReelMode ? '220px' : '180px' }}>
+                        <SplitBranding isReelMode={isReelMode} />
+                        <h2 className={`${isReelMode ? 'text-[100px]' : 'text-[85px]'} font-black leading-[1.05] tracking-tight text-balance mb-6 drop-shadow-[0_4px_20px_rgba(0,0,0,0.4)]`}>
                             {creative.headline}
                         </h2>
-                        <p className="text-[40px] opacity-90 italic max-w-[800px] font-serif mb-12">
+                        <p className={`${isReelMode ? 'text-[42px]' : 'text-[36px]'} opacity-90 italic max-w-[850px] font-serif mb-10`}>
                             {creative.supporting_text}
                         </p>
-                        <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} />
+                        <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} isReelMode={isReelMode} />
                     </div>
                     {/* CTA Safe Zone */}
                     <div className="absolute bottom-0 left-0 right-0 h-[160px] z-20 pointer-events-none"
                         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 55%, transparent 100%)' }}>
+                        {isReelMode && <div className="absolute bottom-10 left-0 right-0 text-center text-white/20 text-sm font-black uppercase tracking-[0.5em]">Platform CTA Area</div>}
                     </div>
                 </div>
             )}
@@ -813,22 +862,26 @@ function CreativeLayout({ creative, isExport = false }: { creative: CreativeVari
                     <div className="absolute inset-0 bg-black/35"></div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
 
-                    <div className="relative flex flex-col h-full z-10 p-20 text-white justify-between" style={{ paddingBottom: '200px' }}>
-                        <div className="flex justify-center w-full mt-10">
-                            <h2 className="text-[110px] font-black leading-tight tracking-tight text-center max-w-[900px] drop-shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+                    <SplitBranding isReelMode={isReelMode} />
+
+                    <div className="relative flex flex-col h-full z-10 p-16 pt-32 text-white justify-between" 
+                        style={{ paddingBottom: isReelMode ? '220px' : '180px' }}>
+                        <div className="flex justify-center w-full mt-6">
+                            <h2 className={`${isReelMode ? 'text-[100px]' : 'text-[90px]'} font-black leading-tight tracking-tight text-center max-w-[950px] drop-shadow-[0_4px_20px_rgba(0,0,0,0.4)]`}>
                                 {creative.headline}
                             </h2>
                         </div>
                         <div className="flex flex-col items-center text-center">
-                            <p className="text-4xl opacity-90 font-medium max-w-[800px]" style={{ textShadow: "0 4px 15px rgba(0,0,0,0.5)" }}>
+                            <p className={`${isReelMode ? 'text-[40px]' : 'text-[32px]'} opacity-90 font-medium max-w-[850px] mb-6`} style={{ textShadow: "0 4px 15px rgba(0,0,0,0.5)" }}>
                                 {creative.supporting_text}
                             </p>
-                            <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} />
+                            <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} isReelMode={isReelMode} />
                         </div>
                     </div>
                     {/* CTA Safe Zone */}
                     <div className="absolute bottom-0 left-0 right-0 h-[160px] z-20 pointer-events-none"
                         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)' }}>
+                        {isReelMode && <div className="absolute bottom-10 left-0 right-0 text-center text-white/20 text-sm font-black uppercase tracking-[0.5em]">Platform CTA Area</div>}
                     </div>
                 </div>
             )}
@@ -839,8 +892,10 @@ function CreativeLayout({ creative, isExport = false }: { creative: CreativeVari
                     <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${bgUrl}')` }}></div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent"></div>
 
+                    <SplitBranding isReelMode={isReelMode} />
+
                     {/* Content area — padded bottom to clear CTA safe zone */}
-                    <div className="relative z-10 flex-1 flex flex-col" style={{ paddingBottom: '160px' }}>
+                    <div className="relative z-10 flex-1 flex flex-col pt-24" style={{ paddingBottom: isReelMode ? '200px' : '160px' }}>
                         {/* Headline — stacked blocks, one word per block */}
                         {(() => {
                             const words = creative.headline.replace(/\.$/, '').split(' ');
@@ -855,21 +910,21 @@ function CreativeLayout({ creative, isExport = false }: { creative: CreativeVari
 
                             if (count <= 4) {
                                 rows = words.map(w => [w]);
-                                fontSize = 72;
+                                fontSize = isReelMode ? 92 : 72;
                             } else if (count <= 6) {
                                 rows = words.map(w => [w]); // 1 word per row, smaller font
-                                fontSize = 54;
+                                fontSize = isReelMode ? 72 : 54;
                             } else {
                                 // pair up into rows of 2 separate blocks
                                 rows = [];
                                 for (let i = 0; i < words.length; i += 2) {
                                     rows.push(words.slice(i, i + 2));
                                 }
-                                fontSize = count <= 8 ? 60 : 52;
+                                fontSize = count <= 8 ? (isReelMode ? 74 : 60) : (isReelMode ? 64 : 52);
                             }
 
                             return (
-                                <div className="flex-1 flex flex-col items-center justify-center px-6 pt-10 max-w-[980px] mx-auto text-center gap-3">
+                                <div className={`flex-1 flex flex-col items-center justify-center px-6 max-w-[980px] mx-auto text-center gap-3 ${isReelMode ? 'pt-40' : 'pt-10'}`}>
                                     {rows.map((rowWords, rowIdx) => (
                                         <div key={rowIdx} className="flex gap-3 justify-center items-center"
                                             style={{ transform: `rotate(${rowIdx % 2 === 0 ? '-1.5deg' : '2deg'})` }}>
@@ -892,50 +947,60 @@ function CreativeLayout({ creative, isExport = false }: { creative: CreativeVari
                         {/* Supporting text — always visible below headline */}
                         <div className="shrink-0 px-10 pb-5">
                             <div className="bg-black/40 backdrop-blur-md border border-white/20 p-7 rounded-2xl max-w-[860px] mx-auto shadow-xl">
-                                <p className="text-white text-[32px] font-medium leading-relaxed italic opacity-95 text-center">
+                                <p className={`${isReelMode ? 'text-[36px]' : 'text-[32px]'} text-white font-medium leading-relaxed italic opacity-95 text-center`}>
                                     "{creative.supporting_text}"
                                 </p>
                             </div>
                         </div>
 
                         {/* Promo block — in-flow, sits above CTA safe zone */}
-                        <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} />
+                        <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} isReelMode={isReelMode} />
                     </div>
 
                     {/* CTA Safe Zone — bottom 160px reserved for Meta platform CTA button */}
                     <div className="absolute bottom-0 left-0 right-0 h-[160px] z-20 pointer-events-none"
                         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)' }}>
+                        {isReelMode && <div className="absolute bottom-10 left-0 right-0 text-center text-white/20 text-sm font-black uppercase tracking-[0.5em]">Platform CTA Area</div>}
                     </div>
                 </div>
             )}
 
             {/* 5. Quote Testimonial - Classic elegant quote marks */}
             {creative.genome.template === 'quote_testimonial' && (
-                <div className="h-full w-full relative flex items-center justify-center overflow-hidden" style={{ paddingBottom: '160px', paddingTop: '40px', paddingLeft: '64px', paddingRight: '64px' }}>
+                <div className="h-full w-full relative flex items-center justify-center overflow-hidden" 
+                    style={{ 
+                        paddingBottom: isReelMode ? '340px' : '160px', 
+                        paddingTop: isReelMode ? '120px' : '40px', 
+                        paddingLeft: '64px', 
+                        paddingRight: '64px' 
+                    }}>
                     <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${bgUrl}')` }}></div>
                     <div className="absolute inset-0 backdrop-blur-[8px]"></div>
                     <div className="absolute inset-0 bg-black/40"></div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent"></div>
 
-                    <div className="relative z-10 bg-white/10 border border-white/20 backdrop-blur-xl rounded-[40px] p-16 text-center w-full max-w-[900px] shadow-2xl">
-                        <Quote className="w-24 h-24 text-white/40 mx-auto mb-8" />
-                        <h2 className="text-[65px] font-serif font-bold italic text-white leading-snug mb-8 drop-shadow-[0_4px_20px_rgba(0,0,0,0.4)]">
+                    <SplitBranding isReelMode={isReelMode} />
+
+                    <div className={`relative z-10 bg-white/10 border border-white/20 backdrop-blur-xl rounded-[40px] text-center w-full max-w-[900px] shadow-2xl mt-24 ${isReelMode ? 'p-16' : 'p-12'}`}>
+                        <Quote className={`${isReelMode ? 'w-24 h-24 mb-10' : 'w-20 h-20 mb-6'} text-white/40 mx-auto`} />
+                        <h2 className={`${isReelMode ? 'text-[72px]' : 'text-[60px]'} font-serif font-bold italic text-white leading-snug mb-6 drop-shadow-[0_4px_20px_rgba(0,0,0,0.4)]`}>
                             "{creative.headline}"
                         </h2>
-                        <p className="text-[32px] text-white/90 font-medium italic mb-8 max-w-[800px] mx-auto">
+                        <p className={`${isReelMode ? 'text-[36px]' : 'text-[28px]'} text-white/90 font-medium italic mb-6 max-w-[800px] mx-auto`}>
                             {creative.supporting_text}
                         </p>
                         <div className="flex justify-center">
-                            <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} />
+                            <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} isReelMode={isReelMode} />
                         </div>
                         <div className="w-24 h-1 bg-white/30 mx-auto mt-8 mb-6 rounded-full"></div>
-                        <p className="text-2xl text-white/80 uppercase tracking-[0.2em] font-black">
+                        <p className={`${isReelMode ? 'text-3xl' : 'text-2xl'} text-white/80 uppercase tracking-[0.2em] font-black`}>
                             Verified Parent
                         </p>
                     </div>
                     {/* CTA Safe Zone */}
                     <div className="absolute bottom-0 left-0 right-0 h-[160px] z-20 pointer-events-none"
                         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)' }}>
+                        {isReelMode && <div className="absolute bottom-10 left-0 right-0 text-center text-white/20 text-sm font-black uppercase tracking-[0.5em]">Platform CTA Area</div>}
                     </div>
                 </div>
             )}
@@ -947,76 +1012,75 @@ function CreativeLayout({ creative, isExport = false }: { creative: CreativeVari
                     <div className="absolute inset-0 bg-black/40"></div>
                     <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/20 to-black/80"></div>
 
-                    <div className="relative z-10 h-full flex flex-col p-16 justify-end" style={{ paddingBottom: '200px' }}>
-                        <div className="flex flex-col items-start space-y-4 mb-16 max-w-[900px]">
+                    <SplitBranding isReelMode={isReelMode} position="bottom" />
+
+                    <div className="relative z-10 h-full flex flex-col p-12 pt-24 justify-end" 
+                        style={{ paddingBottom: isReelMode ? '220px' : '180px' }}>
+                        <div className={`flex flex-col items-start space-y-4 max-w-[900px] ${isReelMode ? 'mb-16' : 'mb-12'}`}>
                             {/* Split headline into chunks for the paper strips */}
                             {creative.headline.match(/([^\s]+(?:\s+[^\s]+){0,2})/g)?.map((chunk, i) => (
-                                <div key={i} className="bg-[#fcfaf7] text-slate-900 px-10 py-5 shadow-[10px_10px_25px_rgba(0,0,0,0.5)] border-b-2 border-r-2 border-gray-300/30"
+                                <div key={i} className="bg-[#fcfaf7] text-slate-900 px-8 py-4 shadow-[10px_10px_25px_rgba(0,0,0,0.5)] border-b-2 border-r-2 border-gray-300/30"
                                     style={{
-                                        transform: `rotate(${i % 2 === 0 ? '-1.5deg' : '2.5deg'}) translateX(${i * 10}px)`,
+                                        transform: `rotate(${i % 2 === 0 ? '-1.5deg' : '2.5deg'}) translateX(${i * 8}px)`,
                                         clipPath: i % 2 === 0
                                             ? "polygon(0% 2%, 100% 0%, 98% 98%, 2% 100%, 0% 50%)"
                                             : "polygon(2% 0%, 98% 2%, 100% 100%, 0% 98%, 2% 40%)"
                                     }}>
-                                    <span className={`text-[75px] font-bold leading-none ${creative.genome.font_style === 'modern_serif' ? 'font-serif' : 'font-sans'} tracking-tight`}>
+                                    <span className={`${isReelMode ? 'text-[72px]' : 'text-[64px]'} font-bold leading-none ${creative.genome.font_style === 'modern_serif' ? 'font-serif' : 'font-sans'} tracking-tight`}>
                                         {chunk}
                                     </span>
                                 </div>
                             ))}
                         </div>
                         <div className="w-full flex flex-col items-start">
-                            <div className="text-white/90 text-[32px] font-medium leading-relaxed max-w-[750px] italic bg-black/20 backdrop-blur-sm p-6 rounded-lg border-l-4 border-indigo-400 mb-6">
+                            <div className={`${isReelMode ? 'text-[34px]' : 'text-[28px]'} text-white/90 font-medium leading-relaxed max-w-[800px] italic bg-black/20 backdrop-blur-sm p-5 rounded-lg border-l-4 border-indigo-400 mb-4`}>
                                 "{creative.supporting_text}"
                             </div>
-                            <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} />
+                            <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} isReelMode={isReelMode} />
                         </div>
                     </div>
                     {/* CTA Safe Zone */}
                     <div className="absolute bottom-0 left-0 right-0 h-[160px] z-20 pointer-events-none"
                         style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.4) 55%, transparent 100%)' }}>
+                        {isReelMode && <div className="absolute bottom-10 left-0 right-0 text-center text-white/20 text-sm font-black uppercase tracking-[0.5em]">Platform CTA Area</div>}
                     </div>
                 </div>
             )}
 
             {/* 7. Billboard Mockup - Pretend outdoor ad */}
             {creative.genome.template === 'billboard_mockup' && (
-                <div className="h-full w-full relative flex items-center justify-center overflow-hidden bg-gray-900" style={{ paddingBottom: '160px' }}>
+                <div className="h-full w-full relative flex items-center justify-center overflow-hidden bg-gray-900" 
+                    style={{ paddingBottom: isReelMode ? '220px' : '180px' }}>
                     <div className="absolute inset-0 bg-cover bg-center opacity-80 blur-sm scale-110" style={{ backgroundImage: `url('${bgUrl}')` }}></div>
                     <div className="absolute inset-0 bg-black/10"></div>
                     {/* CTA Safe Zone */}
                     <div className="absolute bottom-0 left-0 right-0 h-[160px] z-20 pointer-events-none"
-                        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.3) 55%, transparent 100%)' }}>
+                        style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 55%, transparent 100%)' }}>
+                        {isReelMode && <div className="absolute bottom-10 left-0 right-0 text-center text-white/20 text-sm font-black uppercase tracking-[0.5em]">Platform CTA Area</div>}
                     </div>
 
                     {/* Billboard Structure */}
-                    <div className="relative w-[900px] h-[650px] bg-white rounded-md shadow-[0_30px_60px_rgba(0,0,0,0.8)] flex flex-col border-[12px] border-zinc-800 transform rotate-1 perspective-1000 rotate-y-[-5deg] rotate-x-[2deg]">
+                    <div className={`relative ${isReelMode ? 'w-[1020px] h-[850px] border-[18px]' : 'w-[900px] h-[650px] border-[12px]'} bg-white rounded-md shadow-[0_40px_80px_rgba(0,0,0,0.8)] flex flex-col border-zinc-800 transform rotate-1 perspective-1000 rotate-y-[-5deg] rotate-x-[2deg]`}>
                         {/* Billboard Frame Highlights */}
                         <div className="absolute inset-0 shadow-[inset_0_0_50px_rgba(0,0,0,0.1)] pointer-events-none z-20"></div>
 
                         {/* Legs that reach to the bottom */}
-                        <div className="absolute top-[638px] left-[150px] w-12 h-[500px] bg-zinc-900 shadow-2xl z-0"></div>
-                        <div className="absolute top-[638px] right-[150px] w-12 h-[500px] bg-zinc-900 shadow-2xl z-0"></div>
+                        <div className={`absolute ${isReelMode ? 'top-[815px]' : 'top-[615px]'} left-[150px] w-14 h-[800px] bg-zinc-900 shadow-2xl z-0`}></div>
+                        <div className={`absolute ${isReelMode ? 'top-[815px]' : 'top-[615px]'} right-[150px] w-14 h-[800px] bg-zinc-900 shadow-2xl z-0`}></div>
 
                         {/* Billboard Content */}
                         <div className="flex-1 flex flex-col p-16 justify-between text-slate-900 bg-gradient-to-br from-gray-50 to-gray-200 z-10 relative">
-                            <div className="flex justify-between items-start w-full mb-8">
-                                <div className="font-black text-4xl tracking-tighter text-indigo-600 flex items-center gap-2">
-                                    Bloom Grow AI
-                                </div>
-                                <div className="text-indigo-600 font-black text-[22px] uppercase tracking-widest border-b-4 border-indigo-600 pb-1">
-                                    The Best Kids Learning App
-                                </div>
-                            </div>
-
-                            <div className="flex-1 flex flex-col justify-center gap-8">
-                                <h2 className="text-[70px] font-black leading-[1.1] tracking-tight text-slate-900 max-w-[800px]">
+                            <SplitBranding isReelMode={false} light={false} />
+                            
+                            <div className="flex-1 flex flex-col justify-center gap-8 mt-12">
+                                <h2 className="text-[64px] font-black leading-[1.05] tracking-tight text-slate-900 max-w-[800px]">
                                     {creative.headline}
                                 </h2>
-                                <p className="text-[34px] text-slate-600 font-medium max-w-[700px] italic border-l-4 border-indigo-600 pl-6 py-2 bg-indigo-50/50 rounded-r-lg">
+                                <p className="text-[30px] text-slate-600 font-medium max-w-[700px] italic border-l-4 border-indigo-600 pl-6 py-2 bg-indigo-50/50 rounded-r-lg">
                                     "{creative.supporting_text}"
                                 </p>
-                                <div className="scale-75 origin-left">
-                                    <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} />
+                                <div className={`${isReelMode ? 'scale-90 mt-4' : 'scale-75'} origin-left`}>
+                                    <PromotionBlock pointers={creative.offer_pointers} template={creative.genome.template} isReelMode={isReelMode} />
                                 </div>
                             </div>
                         </div>

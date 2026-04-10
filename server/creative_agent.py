@@ -338,40 +338,45 @@ def generate_core_variations(headline: str, description: str, tone: str, brand: 
     """
 
     prompt = f"""
-    You are a Performance Creative Director specializing in emotionally intelligent, high-fidelity ad copy.
+    You are a Performance Creative Director for BloomGrow.ai. 
+    CRITICAL: THE TARGET AUDIENCE IS THE PARENT.
+    MANDATORY: Every ad MUST mention "Parents" or "Parenting" in the Headline or Supporting Text.
     
     BRAND CONTEXT:
     {brand_context}
     {promo_instruction}
     
+    STYLE EXAMPLE:
+    Headline: "Peace of mind for busy, caring parents"
+    Supporting: "Trusted learning, without ads or privacy concerns."
+    
     STYLE CONSTRAINTS:
-    - If DESIGN DIRECTION is 'Loud' or 'Energetic', use bold, punchy language (still premium).
-    - If DESIGN DIRECTION is 'Calm' or 'Minimal', use soft, reflective, human language (Headspace style).
-    - DEFAULT: Mimic the minimal, calm, and emotionally intelligent psychology of brands like Calm and Apple.
+    - SPEAK DIRECTLY TO THE PARENT. Avoid speaking to the child.
+    - Use soft, reflective, human language (Headspace/Calm style).
+    - NEVER use: "Play now", "Fun games", "Learning for kids".
     
     HIGH-PERFORMING BASE AD:
     HEADLINE: "{headline}"
     DESCRIPTION: "{description}"
     
     TASK:
-    Generate {count} unique ad variations. Each one MUST follow one of these NARRATIVE TYPES:
-    - curiosity: A gentle question that creates a gap in knowledge.
-    - emotional reassurance: A soft reflection that validates the parent's feeling.
-    - parent insight: A "gentle idea" or realization about child development.
-    - small transformation: A simple, actionable shift in perspective.
-    - gentle reflection: A thought that helps the parent pause and notice.
+    Generate {count} unique ad variations. Each one MUST follow one of these NARRATIVE TYPES but remain PARENT-CENTRIC:
+    - curiosity: A gentle question for the parent.
+    - emotional reassurance: A reflection that validates the parent's feelings.
+    - parent insight: A realization for the parent about child development or safety.
+    - small transformation: An actionable shift in the parent's perspective.
+    - gentle reflection: A thought that helps the parent feel peace of mind.
     
-    STYLE RULES:
+    STRICT RULES:
     1. Language: Simple, human, zero hype. No "best", "leading", or "innovative".
-    2. Headline: 8 words or fewer. A thought or a reflection, not a sales pitch.
-    3. Supporting Text: 10 words or fewer. A soft extension of the headline.
-    4. offer_pointers: ALWAYS output EXACTLY 3 items — the parsed promo lines above. Keep them short (max 8 words each). Preserve discount codes exactly.
-    5. NO EXCLAMATION MARKS.
+    2. Headline: 8 words or fewer. A thought for the parent, not a sales pitch.
+    3. Supporting Text: 10 words or fewer. A sub-benefit for the parent.
+    4. NO EXCLAMATION MARKS.
     
     Return a valid JSON array of objects:
     [
       {{
-        "narrative_type": "curiosity | emotional reassurance | parent insight | small transformation | gentle reflection",
+        "narrative_type": "...",
         "headline": "...", 
         "supporting_text": "...", 
         "cta": "...",
@@ -730,7 +735,7 @@ def regenerate_creative_directive(creative_id: str, current_data: dict, directiv
     
     prompt = f"""
     You are an expert Copywriter for BloomGrow.
-    You previously wrote the following ad copy:
+    CRITICAL: YOU ARE WRITING TO PARENTS. ALWAYS SPEAK TO THE PARENT ABOUT THE CHILD.
     
     CURRENT HEADLINE: "{headline}"
     CURRENT SUPPORTING TEXT: "{supporting_text}"
@@ -739,12 +744,14 @@ def regenerate_creative_directive(creative_id: str, current_data: dict, directiv
     The user wants to refine this ad text.
     USER DIRECTIVE: "{directive}"
     
-    Update the copy to closely follow the user directive while keeping the tone Headspace-style.
-    CRITICAL: You are NOT allowed to change the visual layout. Only rewrite the text.
+    Update the copy to closely follow the user directive while remaining STRICTLY PARENT-CENTRIC.
+    Keep the tone Headspace-style.
     
     RULES:
+    - NO child-facing language ("Play now", "Learn toys").
+    - INSTEAD use parent-facing language ("Help them learn", "Give them a safe start").
     - Headline MUST be 8 words or fewer.
-    - Supporting Text should be a short subtext (max 10 words).
+    - Supporting Text should be a short sub-benefit for the parent (max 10 words).
     - CTA should be 2-4 words.
     
     Return a valid JSON object:
@@ -752,7 +759,7 @@ def regenerate_creative_directive(creative_id: str, current_data: dict, directiv
       "headline": "...",
       "supporting_text": "...",
       "cta": "...",
-      "score_rationale": "Brief string explaining why this new copy is better."
+      "score_rationale": "Brief string explaining why this new copy is better and more parent-focused."
     }}
     """
     

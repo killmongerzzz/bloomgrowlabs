@@ -55,41 +55,39 @@ def generate_ad_copy(pain_point_text: str, tone: str, copy_style: str = "calm_na
 
     if copy_style == "problem_solution":
         prompt = f"""
-    You are a direct-response conversion copywriter for BloomGrow.ai — a privacy-first, ad-free,
-    one-stop learning platform for children. You write ads that parents immediately connect with
-    because they name the exact problem and offer a concrete, believable solution.
+    You are a direct-response conversion copywriter for BloomGrow.ai. 
+    CRITICAL: YOU ARE WRITING TO PARENTS. THE TARGET CUSTOMER IS THE PARENT.
+    
+    MANDATORY RULE: You MUST use the word "Parents" or "Parenting" in either the Headline OR the Supporting Text.
+    
     {branding_context}
-
+    
+    STYLE EXAMPLE:
+    Headline: "Peace of mind for busy, caring parents"
+    Supporting: "Trusted learning, without ads or privacy concerns."
+    
+    APP VALUE PROP: BloomGrow.ai is a privacy-first, ad-free learning platform for children.
+    
     PARENT PAIN POINT:
     "{pain_point_text}"
-
+    
     Generate 3 ad copy variations. Each one MUST follow this strict Problem → Solution structure:
-
+    
     LAYER 1 — PROBLEM HOOK (Headline):
-    - Name the problem directly. Make the parent feel "that's exactly my situation."
-    - Use a rhetorical question OR a bold statement of the problem.
-    - Examples: "Are ads spoiling your child's screen time?"
-                "Random content. No filters. No control."
-                "Your child deserves a screen-free-from-ads space."
-    - Max 10 words. No punctuation gimmicks. No exclamation marks.
-
+    - Name the parent's problem or emotional tension directly.
+    - Style: Empathetic, calm, and deeply parent-centric.
+    - Max 10 words. No exclamation marks.
+    
     LAYER 2 — SOLUTION + PROOF (Supporting Text):
-    - State exactly what BloomGrow gives them. Be specific and concrete.
-    - Must include at least one of: "no ads", "ad-free", "privacy-first", "no interruptions", "parent-guided", "safe".
-    - Examples: "BloomGrow.ai gives kids a safe, ad-free learning space — no surprises, no interruptions."
-                "Create a secure, enriching environment with zero ads and full parent control."
+    - State exactly how BloomGrow solves the parent's tension.
+    - Use "your child" or "their screen time" to maintain the parent-to-parent dialogue.
+    - Must include: "no ads" or "ad-free" or "privacy-first".
     - Max 120 characters.
-
+    
     LAYER 3 — ACTION CUE (CTA):
-    - A direct, verb-first action. 2-4 words only.
-    - Examples: "Try Free Today", "Start Safe Learning", "Explore Secure Play", "Get Ad-Free Access"
-
-    RULES:
-    - NEVER use: "innovative", "world-class", "comprehensive", "platform", "solution", "best".
-    - Keep language plain, direct, and parent-relatable.
-    - Each of the 3 variations must use a DIFFERENT problem angle.
-
-    Return a valid JSON array (no markdown). Each object:
+    - A direct, parent-oriented action: "Start your 14-day free trial".
+    
+    Return a valid JSON array. Each object:
     {{
       "headline": "...",
       "supporting_text": "...",
@@ -101,32 +99,33 @@ def generate_ad_copy(pain_point_text: str, tone: str, copy_style: str = "calm_na
     else:
         # calm_narrative — original Headspace-style prompt
         prompt = f"""
-    You are an expert Performance Copywriter for BloomGrow, a children's educational app.
+    You are an expert Performance Copywriter specializing in Parent-to-Parent communication.
     {branding_context}
-
+    
+    CRITICAL: YOU ARE WRITING TO PARENTS. MANDATORY: The word "Parents" or "Parenting" MUST appear in every variation.
+    
+    STYLE EXAMPLE:
+    Headline: "Peace of mind for busy, caring parents"
+    Supporting: "Trusted learning, without ads or privacy concerns."
+    
     Parents have expressed the following pain point:
     "{pain_point_text}"
-
-    Generate 3 distinct ad copy variations addressing this pain point.
-    The tone of the ads should be: {tone}.
-
-    CRITICAL STRUCTURE: Each ad MUST follow this three-layer structure:
-    1. Scroll-stopping Hook: Use curiosity, questions, or emotional triggers.
-    2. Clear Benefit: Explain the transformation or value the product delivers.
-    3. Action Cue: A brief reason/cue to try the product now (max 5 words).
-
-    HEADLINE PATTERNS (Rotate between these):
-    - Question Hook (e.g., "Is your toddler's screen time actually helping?")
-    - Curiosity Statement (e.g., "The 5-minute habit that changes everything.")
-    - Transformation Promise (e.g., "From screen addiction to skill-building.")
-    - Testimonial Quote (e.g., "My son finally chooses books over iPads.")
-
-    NEGATIVE CONSTRAINTS:
-    - NEVER use generic marketing fluff like "best solution", "innovative platform", "world-class".
-    - Avoid exclamation marks in headlines.
-    - Keep it short, emotionally resonant, and modern mobile app style.
-
-    Return a valid JSON array (no markdown). Each object:
+    
+    Generate 3 distinct ad copy variations. Each MUST speak directly to the parent's perspective.
+    
+    HEADLINE PATTERNS (Parent-First):
+    - Question Hook (e.g., "Is their screen time actually helping?")
+    - Curiosity (e.g., "The quiet shift in their learning habit.")
+    - Transformation (e.g., "Give your child a safer start.")
+    - Insight (e.g., "Why privacy matters for your child's first app.")
+    
+    STRICT RULES:
+    - NEVER address the child.
+    - Use soft, human language (Headspace style).
+    - No exclamation marks in headlines.
+    - Supporting text must be a short, reflective benefit for the PARENT.
+    
+    Return a valid JSON array. Each object:
     {{
       "headline": "...",
       "supporting_text": "...",
